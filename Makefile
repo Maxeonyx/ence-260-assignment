@@ -38,6 +38,12 @@ task.o: ../../utils/task.c ../../drivers/avr/system.h ../../drivers/avr/timer.h 
 tinygl.o: ../../utils/tinygl.c ../../drivers/avr/system.h ../../drivers/display.h ../../utils/font.h ../../utils/tinygl.h
 	$(CC) -c $(CFLAGS) $< -o $@
 
+navswitch.o: ../../drivers/navswitch.c ../../drivers/avr/delay.h ../../drivers/avr/pio.h ../../drivers/avr/system.h ../../drivers/navswitch.h
+	$(CC) -c $(CFLAGS) $< -o $@
+
+led.o: ../../drivers/led.c ../../drivers/avr/pio.h ../../drivers/avr/system.h ../../drivers/led.h
+	$(CC) -c $(CFLAGS) $< -o $@
+
 # Compile: create object files from C source files.
 game.o: game.c ../../drivers/avr/system.h ../../utils/task.h ../../utils/tinygl.h
 	$(CC) -c $(CFLAGS) $< -o $@
@@ -47,7 +53,7 @@ system.o: ../../drivers/avr/system.c ../../drivers/avr/system.h
 
 
 # Link: create ELF output file from object files.
-game.out: game.o system.o tinygl.o task.o font.o ledmat.o display.o button.o timer.o pio.o
+game.out: game.o system.o tinygl.o task.o font.o ledmat.o display.o button.o timer.o pio.o navswitch.o led.o
 	$(CC) $(CFLAGS) $^ -o $@ -lm
 	$(SIZE) $@
 
