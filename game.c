@@ -6,6 +6,7 @@
 #include "pio.h"
 #include "led.h"
 #include "navswitch.h"
+#include "ir_uart.h"
 #include "../../fonts/font3x5_1.h"
 
 #define DISPLAY_UPDATE_RATE 1000
@@ -18,6 +19,7 @@ typedef enum game_state_enum {
     CHOOSE_OPERATOR,
     CHOOSE_NUMBER_2,
     WAIT_FOR_SEND,
+    WAIT_FOR_RECEIVER,
 
     //receiver
     DISPLAY_QUESTION,
@@ -87,7 +89,7 @@ void change_to_start_screen() {
     tinygl_font_set (&font3x5_1);
     tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
     tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
-    tinygl_text ("  PRESS START!");
+    tinygl_text ("  NAVSWITCH OR WAIT");
 
 }
 
@@ -136,7 +138,19 @@ void change_to_wait_for_send() {
     tinygl_font_set (&font3x5_1);
     tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
     tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
-    tinygl_text ("  PRESS BUT1 TO SEND!");
+    tinygl_text ("  BUT1 TO SEND!");
+
+}
+
+void change_to_wait_for_receiver() {
+
+    game_state = WAIT_FOR_RECEIVER;
+
+    tinygl_text_speed_set (28);
+    tinygl_font_set (&font3x5_1);
+    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
+    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    tinygl_text ("  ...");
 
 }
 
@@ -188,6 +202,11 @@ static void game_loop (__unused__ void *data) {
 
         if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
             change_to_choose_num_1();
+        } else if (ir_uart_read_ready_p()) {
+            char recv = ir_uart_getc();
+            if (recv == '>') {
+                // TODO: CHANGE TO RECEIVE_NUMBER
+            }
         }
 
     } else if (game_state == CHOOSE_NUMBER_1) {
@@ -218,8 +237,22 @@ static void game_loop (__unused__ void *data) {
     } else if (game_state == WAIT_FOR_SEND) {
 
         if (button_push_event_p (BUTTON1)) {
-            change_to_start_screen();
+
+            if (ir_uart_write_ready_p()) {
+                ir_uart_putc ('>');
+            }
+
+        } else if (ir_uart_read_ready_p ()) {
+
+            char recv = ir_uart_getc();
+            if (recv == '<') {
+                change_to_wait_for_receiver();
+            }
         }
+
+    } else if (game_state == WAIT_FOR_RECEIVER) {
+
+        // TODO implement
 
     }
 
@@ -231,6 +264,7 @@ int main (void)
     system_init ();
     tinygl_init (DISPLAY_UPDATE_RATE);
     navswitch_init();
+    ir_uart_init ();
     button_init();
     
     change_to_start_screen();
