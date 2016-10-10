@@ -147,7 +147,7 @@ int add_modulo(int number, int amount, int modulo) {
 
     number = number % modulo;
     if (number < 0) {
-        number = -number;
+        number += modulo;
     }
 
     return number;
@@ -163,11 +163,13 @@ void number_select(int * int_var, int max_int, char* (*textFunction)(int)) {
         if (navswitch_push_event_p (NAVSWITCH_EAST)) {
             *int_var = add_modulo(*int_var, -1, max_int);
         }
-        if (navswitch_push_event_p (NAVSWITCH_NORTH)) {
-            *int_var = add_modulo(*int_var, 10, max_int);
-        }
-        if (navswitch_push_event_p (NAVSWITCH_SOUTH)) {
-            *int_var = add_modulo(*int_var, -10, max_int);
+        if (max_int > 10) {
+            if (navswitch_push_event_p (NAVSWITCH_NORTH)) {
+                *int_var = add_modulo(*int_var, 10, max_int);
+            }
+            if (navswitch_push_event_p (NAVSWITCH_SOUTH)) {
+                *int_var = add_modulo(*int_var, -10, max_int);
+            }
         }
         
         tinygl_text (textFunction(*int_var));
