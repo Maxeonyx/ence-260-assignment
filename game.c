@@ -179,6 +179,7 @@ static void game_loop (__unused__ void *data) {
 
     tinygl_update ();
 
+    button_update();
     navswitch_update();
 
     if (game_state == START_SCREEN) {
@@ -228,6 +229,7 @@ int main (void)
     system_init ();
     tinygl_init (DISPLAY_UPDATE_RATE);
     navswitch_init();
+    button_init();
     
     change_to_start_screen();
 
