@@ -79,10 +79,6 @@ char * to_operator(int operator) {
     return "NO";
 }
 
-static void display_task (__unused__ void *data) {
-    tinygl_update ();
-}
-
 void change_to_start_screen() {
 
     game_state = START_SCREEN;
@@ -181,6 +177,8 @@ void number_select(int * int_var, int max_int, char* (*textFunction)(int)) {
 
 static void game_loop (__unused__ void *data) {
 
+    tinygl_update ();
+
     navswitch_update();
 
     if (game_state == START_SCREEN) {
@@ -235,7 +233,6 @@ int main (void)
 
     task_t tasks[] =
     {
-      {.func = display_task, .period = TASK_RATE / DISPLAY_UPDATE_RATE},
       {.func = game_loop, .period = TASK_RATE / DISPLAY_UPDATE_RATE}
     };
 
