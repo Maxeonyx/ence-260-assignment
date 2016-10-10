@@ -32,7 +32,7 @@ enum operator_enum {
     OP_DIV
 };
 
-GameState curr_state = START_SCREEN;
+GameState game_state = START_SCREEN;
 
 
 int sender_number_1 = 0;
@@ -85,7 +85,7 @@ static void display_task (__unused__ void *data) {
 
 void change_to_start_screen() {
 
-    curr_state = START_SCREEN;
+    game_state = START_SCREEN;
 
     tinygl_text_speed_set (28);
     tinygl_font_set (&font3x5_1);
@@ -97,7 +97,7 @@ void change_to_start_screen() {
 
 void change_to_choose_num_1() {
 
-    curr_state = CHOOSE_NUMBER_1;
+    game_state = CHOOSE_NUMBER_1;
 
     tinygl_font_set (&font3x5_1);
     tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
@@ -109,7 +109,7 @@ void change_to_choose_num_1() {
 
 void change_to_choose_num_2() {
 
-    curr_state = CHOOSE_NUMBER_2;
+    game_state = CHOOSE_NUMBER_2;
 
     tinygl_font_set (&font3x5_1);
     tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
@@ -122,7 +122,7 @@ void change_to_choose_num_2() {
 
 void change_to_choose_operator() {
 
-    curr_state = CHOOSE_OPERATOR;
+    game_state = CHOOSE_OPERATOR;
 
     tinygl_font_set (&font3x5_1);
     tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
@@ -134,7 +134,7 @@ void change_to_choose_operator() {
 
 void change_to_wait_for_send() {
 
-    curr_state = WAIT_FOR_SEND;
+    game_state = WAIT_FOR_SEND;
 
     tinygl_text_speed_set (28);
     tinygl_font_set (&font3x5_1);
@@ -183,13 +183,13 @@ static void game_loop (__unused__ void *data) {
 
     navswitch_update();
 
-    if (curr_state == START_SCREEN) {
+    if (game_state == START_SCREEN) {
 
         if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
             change_to_choose_num_1();
         }
 
-    } else if (curr_state == CHOOSE_NUMBER_1) {
+    } else if (game_state == CHOOSE_NUMBER_1) {
 
         number_select( &sender_number_1, 10, &to_text);
 
@@ -197,7 +197,7 @@ static void game_loop (__unused__ void *data) {
             change_to_choose_operator();
         }
 
-    } else if (curr_state == CHOOSE_OPERATOR) {
+    } else if (game_state == CHOOSE_OPERATOR) {
 
         number_select( &sender_operator, 4, &to_operator);
 
@@ -206,7 +206,7 @@ static void game_loop (__unused__ void *data) {
         }
 
 
-    } else if (curr_state == CHOOSE_NUMBER_2) {
+    } else if (game_state == CHOOSE_NUMBER_2) {
 
         number_select( &sender_number_2, 10, &to_text);
 
@@ -214,7 +214,7 @@ static void game_loop (__unused__ void *data) {
             change_to_wait_for_send();
         }
 
-    } else if (curr_state == WAIT_FOR_SEND) {
+    } else if (game_state == WAIT_FOR_SEND) {
 
         if (button_push_event_p (BUTTON1)) {
             change_to_start_screen();
