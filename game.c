@@ -380,14 +380,15 @@ static void game_loop (__unused__ void *data) {
         }
         
     } else if (game_state == WAIT_FOR_QUESTION) {
+        int i = 0;
         
-        // TODO implement
-        char * recv = ir_uart_gets();
-        question[0] = recv[0];
-        question[1] = recv[1];
-        question[2] = recv[2];
-        question[3] = recv[3];
-        question[4] = recv[4];
+        /*NEED TO TEST - WAS QUICK IDEA TO SAVE TIME SETTING EACH EQUATION TO A CHAR - MAY OR MAY NOT WORK*/
+        
+        for (i ; i < 6 ; i++) // loop through characters in sent string (We know all data needed will be within 6 iterations)
+        {
+            char * recv = ir_uart_getc();
+            question[i] = recv;
+        }
 
         if (is_question_valid(question)) {
             change_to_display_question();
