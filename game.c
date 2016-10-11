@@ -34,10 +34,10 @@ enum operator_enum {
     OP_SUB,
     OP_DIV
 };
-
+/* Set initial game state to start screen */
 GameState game_state = START_SCREEN;
 
-
+/* Initialise all global variables */
 int sender_number_1 = 0;
 int sender_operator = 0;
 int sender_number_2 = 0;
@@ -47,12 +47,14 @@ int grading = 0;
 
 char question[6] = {0};
 
+/* Function to convert int to char */
 char digit_base_10_to_char(int digit) {
     char chr = '0';
     chr += digit;
     return chr;
 }
 
+/* Function used with tinygl_text to print numbers to the screen */
 char * to_text(int num) {
     
     // we only want to deal with positive numbers in the range 0-99
@@ -75,6 +77,7 @@ char * to_text(int num) {
     return str;
 }
 
+/* Function to return operator to print when in operator selection */
 char * to_operator(int operator) {
     
     switch (operator) {
@@ -87,6 +90,7 @@ char * to_operator(int operator) {
     return "NO";
 }
 
+/* Sets the game state to START_SCREEN and the start screen to print instructions to the display when called */
 void change_to_start_screen() {
     
     game_state = START_SCREEN;
@@ -99,6 +103,7 @@ void change_to_start_screen() {
     
 }
 
+/* Sets game state to CHOOSE_NUMBER_1, displays a number between 0-9 for the player to choose from in game */
 void change_to_choose_num_1() {
     
     game_state = CHOOSE_NUMBER_1;
@@ -110,7 +115,7 @@ void change_to_choose_num_1() {
     tinygl_text_speed_set (100);
     
 }
-
+/* Sets game state to CHOOSE_NUMBER_2, does same thing as 'change_to_choose_num_1' but for the second number */
 void change_to_choose_num_2() {
     
     game_state = CHOOSE_NUMBER_2;
@@ -123,7 +128,7 @@ void change_to_choose_num_2() {
     
 }
 
-
+/* Sets game state to CHOOSE_OPERATOR, allows the player to 'scroll' through operators by displaying operator options */
 void change_to_choose_operator() {
     
     game_state = CHOOSE_OPERATOR;
@@ -136,6 +141,7 @@ void change_to_choose_operator() {
     
 }
 
+/* Changes game state to WAIT_FOR_SEND, displays instructions on how to send challenge to second player */
 void change_to_wait_for_send() {
     
     game_state = WAIT_FOR_SEND;
@@ -148,6 +154,7 @@ void change_to_wait_for_send() {
     
 }
 
+/* Changes game state to WAIT_FOR_RECIEVER, displays ... while waiting */
 void change_to_wait_for_receiver() {
     
     game_state = WAIT_FOR_RECEIVER;
@@ -160,6 +167,7 @@ void change_to_wait_for_receiver() {
     
 }
 
+/* Changes game state to DISPLAY_QUESTION, displays challenge to second player */
 void change_to_display_question() {
     
     game_state = DISPLAY_QUESTION;
@@ -171,6 +179,7 @@ void change_to_display_question() {
     tinygl_text (question); //placeholder
 }
 
+/* Changes game state to CHOOSE_ANSWER, displays number range 0-99 for player to 'scroll' through and choose an answer */
 void change_to_choose_answer () {
     
     game_state = CHOOSE_ANSWER;
@@ -183,6 +192,7 @@ void change_to_choose_answer () {
     
 }
 
+/* Changes game state to DISPLAY_RESULT, displays whether the second player got the correct answer or not */
 void change_to_display_result() {
     
     game_state = DISPLAY_RESULT;
@@ -193,6 +203,7 @@ void change_to_display_result() {
     tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
 }
 
+/* Changes game state to WAIT_FOR_QUESTION, displays ... while waiting to recieve challenge from player 1 */
 void change_to_wait_for_question() {
 
     game_state = WAIT_FOR_QUESTION;
