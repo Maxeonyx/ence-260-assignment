@@ -6,6 +6,7 @@
 #include "pio.h"
 #include "led.h"
 #include "navswitch.h"
+#include "ir_uart.h"
 #include "../../fonts/font3x5_1.h"
 
 #define DISPLAY_UPDATE_RATE 1000
@@ -18,6 +19,7 @@ typedef enum game_state_enum {
     CHOOSE_OPERATOR,
     CHOOSE_NUMBER_2,
     WAIT_FOR_SEND,
+    WAIT_FOR_RECEIVER,
     
     //receiver
     DISPLAY_QUESTION,
@@ -38,6 +40,9 @@ GameState game_state = START_SCREEN;
 int sender_number_1 = 0;
 int sender_operator = 0;
 int sender_number_2 = 0;
+int receiver_answer = 0;
+int correct_answer = 0;
+int grading = 0;
 
 char digit_base_10_to_char(int digit) {
     char chr = '0';
@@ -87,7 +92,7 @@ void change_to_start_screen() {
     tinygl_font_set (&font3x5_1);
     tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
     tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
-    tinygl_text ("  PRESS START!");
+    tinygl_text ("  NAVSWITCH OR WAIT");
     
 }
 
@@ -136,10 +141,54 @@ void change_to_wait_for_send() {
     tinygl_font_set (&font3x5_1);
     tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
     tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
-    tinygl_text ("  PRESS BUT1 TO SEND!");
+    tinygl_text ("  BUT1 TO SEND!");
     
 }
 
+void change_to_wait_for_receiver() {
+    
+    game_state = WAIT_FOR_RECEIVER;
+    
+    tinygl_text_speed_set (28);
+    tinygl_font_set (&font3x5_1);
+    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
+    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    tinygl_text ("  ...");
+    
+}
+
+void change_to_display_question() {
+    
+    game_state = DISPLAY_QUESTION;
+    
+    tinygl_text_speed_set (28);
+    tinygl_font_set (&font3x5_1);
+    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
+    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    tinygl_text ("  QUESTION"); //placeholder
+}
+
+void change_to_choose_answer () {
+    
+    game_state = CHOOSE_ANSWER;
+    
+    tinygl_font_set (&font3x5_1);
+    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
+    tinygl_text_mode_set (TINYGL_TEXT_MODE_STEP);
+    tinygl_text (to_text(receiver_answer));
+    tinygl_text_speed_set (100);
+    
+}
+
+void change_to_display_result() {
+    
+    game_state = DISPLAY_RESULT;
+    
+    tinygl_text_speed_set (28);
+    tinygl_font_set (&font3x5_1);
+    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
+    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+}
 
 int add_modulo(int number, int amount, int modulo) {
     
@@ -154,6 +203,26 @@ int add_modulo(int number, int amount, int modulo) {
     
 }
 
+int calculate_correct_answer (int sender_number_1, int sender_number_2, int sender_operator) {
+    
+    //How to find operator used?
+    
+}
+
+int check_receiver_answer(int correct_answer, int receiver_answer) {
+    
+    //return positive integer if correct
+    if (receiver_answer == correct_answer) {
+        grading = 1;
+    }
+    
+    else {
+        grading = 0;
+    }
+    
+    return grading;
+    
+}
 
 void number_select(int * int_var, int max_int, char* (*textFunction)(int)) {
     
@@ -188,6 +257,11 @@ static void game_loop (__unused__ void *data) {
         
         if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
             change_to_choose_num_1();
+        } else if (ir_uart_read_ready_p()) {
+            char recv = ir_uart_getc();
+            if (recv == '>') {
+                change_to_display_question();
+            }
         }
         
     } else if (game_state == CHOOSE_NUMBER_1) {
@@ -217,10 +291,45 @@ static void game_loop (__unused__ void *data) {
         
     } else if (game_state == WAIT_FOR_SEND) {
         
-        if (button_push_event_p (BUTTON1)) {
-            change_to_start_screen();
+        if (button_push_event_p(BUTTON1)) {
+        led_set (LED1, 1);
+            if (ir_uart_write_ready_p()) {
+                ir_uart_putc ('>');
+            }
+            
+        } else if (ir_uart_read_ready_p ()) {
+            
+            char recv = ir_uart_getc();
+            if (recv == '<') {
+                change_to_wait_for_receiver();
+            }
         }
         
+    } else if (game_state == WAIT_FOR_RECEIVER) {
+        
+        // TODO implement
+        char recv = ir_uart_getc();
+        if (recv == '>') {
+            change_to_display_result();
+        }
+    } else if (game_state == DISPLAY_QUESTION) {
+        
+        if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
+            change_to_choose_answer();
+        }
+    } else if (game_state == CHOOSE_ANSWER) {
+        number_select( &receiver_answer, 100, &to_text);
+        
+        if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
+            correct_answer = calculate_correct_answer(sender_number_1, sender_number_2, sender_operator); //currently always zero
+            grading = check_receiver_answer(correct_answer, receiver_answer);
+            if (grading == 1) {
+                tinygl_text ("  CORRECT!");
+            }
+            else if (grading == 0) {
+                tinygl_text ("  INCORRECT!");
+            }
+        }
     }
     
 }
@@ -231,6 +340,7 @@ int main (void)
     system_init ();
     tinygl_init (DISPLAY_UPDATE_RATE);
     navswitch_init();
+    ir_uart_init ();
     button_init();
     
     change_to_start_screen();
