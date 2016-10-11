@@ -25,7 +25,9 @@ typedef enum game_state_enum {
     WAIT_FOR_QUESTION,
     DISPLAY_QUESTION,
     CHOOSE_ANSWER,
-    DISPLAY_RESULT
+    DISPLAY_RESULT,
+
+    EASTER_EGG
 } GameState;
 
 enum operator_enum {
@@ -41,9 +43,9 @@ GameState game_state = START_SCREEN;
 int sender_number_1 = 0;
 int sender_operator = 0;
 int sender_number_2 = 0;
-int receiver_answer = 0;
-int correct_answer = 0;
-int grading = 0;
+int receiver_answer;
+
+char * result;
 
 char question[6] = {0};
 
@@ -201,6 +203,7 @@ void change_to_display_result() {
     tinygl_font_set (&font3x5_1);
     tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
     tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    tinygl_text (result);
 }
 
 /* Changes game state to WAIT_FOR_QUESTION, displays ... while waiting to recieve challenge from player 1 */
@@ -214,7 +217,18 @@ void change_to_wait_for_question() {
     tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
     tinygl_text ("  ...");
 
+}
 
+/* The credits!! */
+void change_to_credits() {
+
+    game_state = EASTER_EGG;
+    
+    tinygl_text_speed_set (28);
+    tinygl_font_set (&font3x5_1);
+    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
+    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    tinygl_text ("THANKS FOR PLAYING!!!");//" WE HOPE YOU HAD FUN! -- RYELY B-D, MAXWELL C");
 
 }
 
@@ -230,62 +244,78 @@ int add_modulo(int number, int amount, int modulo) {
     
 }
 
-bool is_question_valid(char * _question) {
-    
-    return (_question[0] >= '0' && _question[0] <= '9') || _question[0] == ' '
-            && (_question[1] >= '0' && _question[1] <= '9')
-            && (_question[3] >= '0' && _question[3] <= '9')
-            && (_question[4] >= '0' && _question[4] <= '9')
-            && (_question[2] == '+' || _question[2] == 'X' || _question[2] == '-' || _question[2] == '/');
+bool decode_question(unsigned char question) {
 
+    if (question < 100) {
+        sender_operator = OP_ADD;
+        sender_number_1 = question / 10;
+        sender_number_2 = question % 10;
+    } else if (question >= 100 && question < 200) {
+        sender_operator = OP_MUL;
+        sender_number_1 = (question - 100) / 10;
+        sender_number_2 = (question - 100) % 10;
+    } else if (question >= 200 && question < 255) {
+        sender_operator = OP_SUB;
+
+        int code = question - 200;
+
+        int count = 0;
+        int i = 0;
+        for (; i <= 9; i ++) {
+            int j = 0;
+            for (; j <= i; j ++) {
+                if (count == code) {
+                    sender_number_1 = i;
+                    sender_number_2 = j;
+                    return false;
+                }
+                count ++;
+            }
+        }
+
+
+    } else {
+        return true;
+    }
+
+    return false;
 }
+
+unsigned char encode_question() {
+
+    if (sender_operator == OP_ADD) {
+        return (unsigned char) (sender_number_1 * 10 + sender_number_2);
+    } else if (sender_operator = OP_MUL) {
+        return (unsigned char) (100 + sender_number_1 * 10 + sender_number_2);
+    } else {
+        unsigned char count = 0;
+        int i = 0;
+        int j = 0;
+        while (!(i == sender_number_1 && j == sender_number_2)) {
+
+            j ++;
+            if (j > i) {
+                j = 0;
+                i++;
+            }
+
+            count ++;
+        }
+
+        return count;
+    }
+
+} 
 
 int calculate_correct_answer (char * _question) {
-    
-    int digit_1_1;
-    if (_question[0] == ' ') {
-        digit_1_1 = 0;
-    } else {
-        digit_1_1 = _question[0] - '0';
-    }
-    int digit_1_2 = _question[1] - '0';
-
-
-    int digit_2_1;
-    if (_question[3] == ' ') {
-        digit_2_1 = 0;
-    } else {
-        digit_2_1 = _question[3] - '0';
-    }
-    int digit_2_2 = _question[4] - '0';
-
-    int number_1 = digit_1_1 * 10 + digit_1_2;
-    int number_2 = digit_2_1 * 10 + digit_2_2;
 
     if (_question[2] == '+') {
-        return number_1 + number_2;
+        return sender_number_1 + sender_number_2;
     } else if (_question[2] == 'X') {
-        return number_1 * number_2;
-    } else if (_question[2] == '-') {
-        return number_1 - number_2;
+        return  sender_number_1 * sender_number_2;
     } else {
-        return number_1 / number_2;
+        return  sender_number_1 - sender_number_2;
     }
-    
-}
-
-int check_receiver_answer(int correct_answer, int receiver_answer) {
-    
-    //return positive integer if correct
-    if (receiver_answer == correct_answer) {
-        grading = 1;
-    }
-    
-    else {
-        grading = 0;
-    }
-    
-    return grading;
     
 }
 
@@ -330,7 +360,7 @@ static void game_loop (__unused__ void *data) {
                     ir_uart_putc('<');
                 }
  
-                change_to_display_question();
+                change_to_wait_for_question();
             }
         }
         
@@ -379,34 +409,32 @@ static void game_loop (__unused__ void *data) {
             char recv = ir_uart_getc();
             if (recv == '<') {
 
-                question[0] = to_text(sender_number_1)[0];
-                question[1] = to_text(sender_number_1)[1];
-                question[2] = to_operator(sender_operator)[1];
-                question[3] = to_text(sender_number_2)[0];
-                question[4] = to_text(sender_number_2)[1];
+                ir_uart_putc(encode_question());
 
-                ir_uart_puts(question);
+                change_to_start_screen();
 
             }
         }
         
     } else if (game_state == WAIT_FOR_QUESTION) {
-        int i = 0;
         
-        /*NEED TO TEST - WAS QUICK IDEA TO SAVE TIME SETTING EACH EQUATION TO A CHAR - MAY OR MAY NOT WORK*/
-        
-        for (i ; i < 6 ; i++) // loop through characters in sent string (We know all data needed will be within 6 iterations)
-        {
-            char * recv = ir_uart_getc();
-            question[i] = recv;
-        }
-
-        if (is_question_valid(question)) {
-            change_to_display_question();
+        if (ir_uart_read_ready_p()) {
+            unsigned char recv = ir_uart_getc();
+            bool easter_egg = decode_question(recv);
+            if(easter_egg) {
+                change_to_credits();
+            } else {
+                question[0] = to_text(sender_number_1)[0];
+                question[1] = to_text(sender_number_1)[1];
+                question[2] = to_operator(sender_operator)[1];
+                question[3] = to_text(sender_number_2)[0];
+                question[4] = to_text(sender_number_2)[1];
+                change_to_display_question();
+            }
         }
 
     } else if (game_state == DISPLAY_QUESTION) {
-        
+
         if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
             change_to_choose_answer();
         }
@@ -416,17 +444,24 @@ static void game_loop (__unused__ void *data) {
         
         if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
 
-            correct_answer = calculate_correct_answer(question);
+            int correct_answer = calculate_correct_answer(question);
 
-            grading = receiver_answer == correct_answer;
+            bool grading = (receiver_answer == correct_answer);
             if (grading == true) {
-                tinygl_text ("  CORRECT!");
+                result = "  CORRECT :)";
             }
             else if (grading == false) {
-                tinygl_text ("  INCORRECT!");
+                result = "  INCORRECT!";
             }
+            change_to_display_result();
         }
-    }
+    } else if (game_state == DISPLAY_RESULT) {
+
+        if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
+            change_to_start_screen();
+        }
+
+    } 
     
 }
 
