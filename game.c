@@ -22,6 +22,7 @@ typedef enum game_state_enum {
     WAIT_FOR_RECEIVER,
     
     //receiver
+    WAIT_FOR_QUESTION,
     DISPLAY_QUESTION,
     CHOOSE_ANSWER,
     DISPLAY_RESULT
@@ -44,6 +45,8 @@ int receiver_answer = 0;
 int correct_answer = 0;
 int grading = 0;
 
+char question[6] = {0};
+
 char digit_base_10_to_char(int digit) {
     char chr = '0';
     chr += digit;
@@ -53,13 +56,13 @@ char digit_base_10_to_char(int digit) {
 char * to_text(int num) {
     
     // we only want to deal with positive numbers in the range 0-99
-    if (num < 0) {
-        num = -(num % 100); // C's modulo isn't the mathematical one
-    } else {
-        num = num % 100;
-    }
+    num = add_modulo(num, 0, 100);
     
+
+    // note that we use this as a global string
     char * str = "  ";
+    str[0] = ' ';
+    str[1] = ' ';
     
     if (num < 10) {
         // only use the second character if our number is only 1 digit
@@ -165,7 +168,7 @@ void change_to_display_question() {
     tinygl_font_set (&font3x5_1);
     tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
     tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
-    tinygl_text ("  QUESTION"); //placeholder
+    tinygl_text (question); //placeholder
 }
 
 void change_to_choose_answer () {
@@ -190,22 +193,73 @@ void change_to_display_result() {
     tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
 }
 
+void change_to_wait_for_question() {
+
+    game_state = WAIT_FOR_QUESTION;
+    
+    tinygl_text_speed_set (28);
+    tinygl_font_set (&font3x5_1);
+    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
+    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    tinygl_text ("  ...");
+
+
+
+}
+
 int add_modulo(int number, int amount, int modulo) {
     
-    number += amount;
+    int sum = (number + amount) % modulo;
     
-    number = number % modulo;
-    if (number < 0) {
-        number += modulo;
+    if (sum < 0) {
+        sum += modulo;
     }
     
-    return number;
+    return sum;
     
 }
 
-int calculate_correct_answer (int sender_number_1, int sender_number_2, int sender_operator) {
+bool is_question_valid(char * _question) {
     
-    //How to find operator used?
+    return (_question[0] >= '0' && _question[0] <= '9') || _question[0] == ' '
+            && (_question[1] >= '0' && _question[1] <= '9')
+            && (_question[3] >= '0' && _question[3] <= '9')
+            && (_question[4] >= '0' && _question[4] <= '9')
+            && (_question[2] == '+' || _question[2] == 'X' || _question[2] == '-' || _question[2] == '/');
+
+}
+
+int calculate_correct_answer (char * _question) {
+    
+    int digit_1_1;
+    if (_question[0] == ' ') {
+        digit_1_1 = 0;
+    } else {
+        digit_1_1 = _question[0] - '0';
+    }
+    int digit_1_2 = _question[1] - '0';
+
+
+    int digit_2_1;
+    if (_question[3] == ' ') {
+        digit_2_1 = 0;
+    } else {
+        digit_2_1 = _question[3] - '0';
+    }
+    int digit_2_2 = _question[4] - '0';
+
+    int number_1 = digit_1_1 * 10 + digit_1_2;
+    int number_2 = digit_2_1 * 10 + digit_2_2;
+
+    if (_question[2] == '+') {
+        return number_1 + number_2;
+    } else if (_question[2] == 'X') {
+        return number_1 * number_2;
+    } else if (_question[2] == '-') {
+        return number_1 - number_2;
+    } else {
+        return number_1 / number_2;
+    }
     
 }
 
@@ -260,6 +314,11 @@ static void game_loop (__unused__ void *data) {
         } else if (ir_uart_read_ready_p()) {
             char recv = ir_uart_getc();
             if (recv == '>') {
+
+                if (ir_uart_write_ready_p ()) {
+                    ir_uart_putc('<');
+                }
+ 
                 change_to_display_question();
             }
         }
@@ -283,7 +342,14 @@ static void game_loop (__unused__ void *data) {
         
     } else if (game_state == CHOOSE_NUMBER_2) {
         
-        number_select( &sender_number_2, 10, &to_text);
+        int range;
+        if (sender_operator == OP_SUB) {
+            range = sender_number_1 + 1;
+        } else {
+            range = 10;
+        }
+
+        number_select( &sender_number_2, range, &to_text);
         
         if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
             change_to_wait_for_send();
@@ -301,32 +367,50 @@ static void game_loop (__unused__ void *data) {
             
             char recv = ir_uart_getc();
             if (recv == '<') {
-                change_to_wait_for_receiver();
+
+                question[0] = to_text(sender_number_1)[0];
+                question[1] = to_text(sender_number_1)[1];
+                question[2] = to_operator(sender_operator)[1];
+                question[3] = to_text(sender_number_2)[0];
+                question[4] = to_text(sender_number_2)[1];
+
+                ir_uart_puts(question);
+
             }
         }
         
-    } else if (game_state == WAIT_FOR_RECEIVER) {
+    } else if (game_state == WAIT_FOR_QUESTION) {
         
         // TODO implement
-        char recv = ir_uart_getc();
-        if (recv == '>') {
-            change_to_display_result();
+        char * recv = ir_uart_gets();
+        question[0] = recv[0];
+        question[1] = recv[1];
+        question[2] = recv[2];
+        question[3] = recv[3];
+        question[4] = recv[4];
+
+        if (is_question_valid(question)) {
+            change_to_display_question();
         }
+
     } else if (game_state == DISPLAY_QUESTION) {
         
         if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
             change_to_choose_answer();
         }
+        
     } else if (game_state == CHOOSE_ANSWER) {
         number_select( &receiver_answer, 100, &to_text);
         
         if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
-            correct_answer = calculate_correct_answer(sender_number_1, sender_number_2, sender_operator); //currently always zero
-            grading = check_receiver_answer(correct_answer, receiver_answer);
-            if (grading == 1) {
+
+            correct_answer = calculate_correct_answer(question);
+
+            grading = receiver_answer == correct_answer;
+            if (grading == true) {
                 tinygl_text ("  CORRECT!");
             }
-            else if (grading == 0) {
+            else if (grading == false) {
                 tinygl_text ("  INCORRECT!");
             }
         }
