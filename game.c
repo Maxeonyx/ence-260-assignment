@@ -52,6 +52,17 @@ char * result;
 
 char question[6] = {0};
 
+
+void reset_answer() {
+    receiver_answer = 0;
+}
+
+void reset_numbers() {
+    sender_number_1 = 0;
+    sender_operator = 0;
+    sender_number_2 = 0;
+}
+
 /* Function to convert int to char */
 char digit_base_10_to_char(int digit) {
     char chr = '0';
@@ -98,6 +109,9 @@ char * to_operator(int operator) {
 void change_to_start_screen() {
     
     game_state = START_SCREEN;
+
+    reset_numbers();
+    reset_answer();
     
     tinygl_text_speed_set (28);
     tinygl_font_set (&font3x5_1);
@@ -371,14 +385,15 @@ static void game_loop (__unused__ void *data) {
             change_to_choose_num_1();
 
         } else if (ir_uart_read_ready_p()) {
+
             char recv = ir_uart_getc();
             if (recv == '>') {
 
                 if (ir_uart_write_ready_p ()) {
                     ir_uart_putc('<');
-                }
  
-                change_to_wait_for_question();
+                    change_to_wait_for_question();
+                }
             }
 
         }
