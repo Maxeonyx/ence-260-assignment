@@ -458,15 +458,14 @@ static void game_loop (__unused__ void *data) {
         }
     } else if (game_state == STOPWATCH) {
         
-        /*if (ir_uart_read_ready_p ()) {
+        if (ir_uart_read_ready_p ()) {
             
             char answered = ir_uart_getc();
             if (answered == '<') {
                 change_to_start_screen();
-                
-            }*/
+        
             
-        } else if (time == 0) {
+            } else if (time == 0) {
             
             change_to_start_screen();
             
