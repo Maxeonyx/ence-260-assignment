@@ -22,7 +22,7 @@ typedef enum game_state_enum {
     CHOOSE_NUMBER_2,
     WAIT_FOR_SEND,
     WAIT_FOR_RECEIVER,
-    STOPWATCH, ////!!!!////
+    STOPWATCH,
     
     //receiver
     WAIT_FOR_QUESTION,
