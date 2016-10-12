@@ -20,6 +20,7 @@ typedef enum game_state_enum {
     CHOOSE_NUMBER_2,
     WAIT_FOR_SEND,
     WAIT_FOR_RECEIVER,
+    STOPWATCH, ////!!!!////
     
     //receiver
     WAIT_FOR_QUESTION,
@@ -44,6 +45,7 @@ int sender_number_1 = 0;
 int sender_operator = 0;
 int sender_number_2 = 0;
 int receiver_answer;
+int time = 300;
 
 char * result;
 
@@ -232,6 +234,18 @@ void change_to_credits() {
 
 }
 
+void change_to_count_down() {
+    
+    game_state = STOPWATCH;
+    
+    tinygl_text_speed_set(100);
+    tinygl_font_set (&font3x5_1);
+    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
+    tinygl_text_mode_set (TINYGL_TEXT_MODE_STEP);
+    tinygl_text (time);
+    
+}
+
 int add_modulo(int number, int amount, int modulo) {
     
     int sum = (number + amount) % modulo;
@@ -242,6 +256,26 @@ int add_modulo(int number, int amount, int modulo) {
     
     return sum;
     
+}
+
+ int timing() {
+    
+     bool run;
+     static uint16_t time;
+     char str[2];
+    
+     if (!run) {
+         time = 0;
+         return time;
+     }
+    
+     str[0] = ((time /10) % 10) + '0';
+     str[1] = (time % 10) + '0';
+     
+     tinygl_text (str);
+     
+     time--;
+     
 }
 
 bool decode_question(unsigned char question) {
@@ -362,8 +396,13 @@ static void game_loop (__unused__ void *data) {
  
                 change_to_wait_for_question();
             }
-        }
+        } else if (button_push_event_p(BUTTON1)) {
+            
+            change_to_count_down();
+            
+            }
         
+    
     } else if (game_state == CHOOSE_NUMBER_1) {
         
         number_select( &sender_number_1, 10, &to_text);
@@ -403,19 +442,42 @@ static void game_loop (__unused__ void *data) {
             if (ir_uart_write_ready_p()) {
                 ir_uart_putc ('>');
             }
+                
             
         } else if (ir_uart_read_ready_p ()) {
             
             char recv = ir_uart_getc();
             if (recv == '<') {
-
+            
                 ir_uart_putc(encode_question());
-
-                change_to_start_screen();
-
+                
+                change_to_count_down();
+                
             }
+        
+        }
+    } else if (game_state == STOPWATCH) {
+        
+        /*if (ir_uart_read_ready_p ()) {
+            
+            char answered = ir_uart_getc();
+            if (answered == '<') {
+                change_to_start_screen();
+                
+            }*/
+            
+        } else if (time == 0) {
+            
+            change_to_start_screen();
+            
+        } else {
+            
+            time = timing();
+            
         }
         
+    
+    
     } else if (game_state == WAIT_FOR_QUESTION) {
         
         if (ir_uart_read_ready_p()) {
