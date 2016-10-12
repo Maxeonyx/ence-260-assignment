@@ -1,3 +1,8 @@
+/**
+ MATHS FIGHT!!
+ Written by Maxwell Clarke and Ryely Burtenshaw-Day
+ */
+
 #include "system.h"
 #include "tinygl.h"
 #include "task.h"

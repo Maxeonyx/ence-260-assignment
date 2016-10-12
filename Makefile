@@ -1,5 +1,5 @@
 # File:   Makefile
-# Author: M. P. Hayes, UCECE
+# Author: M. P. Hayes, UCECE, edited by Ryely Burtenshaw-Day, Maxwell Clarke
 # Date:   12 Sep 2010
 # Descr:  Makefile for game
 
