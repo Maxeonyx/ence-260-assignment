@@ -11,6 +11,8 @@
 
 #define DISPLAY_UPDATE_RATE 1000
 
+#define COUNTDOWN_AMOUNT 7
+
 typedef enum game_state_enum {
     START_SCREEN,
     
@@ -34,8 +36,7 @@ typedef enum game_state_enum {
 enum operator_enum {
     OP_ADD,
     OP_MUL,
-    OP_SUB,
-    OP_DIV
+    OP_SUB
 };
 /* Set initial game state to start screen */
 GameState game_state = START_SCREEN;
@@ -45,7 +46,7 @@ int sender_number_1 = 0;
 int sender_operator = 0;
 int sender_number_2 = 0;
 int receiver_answer;
-int time = 300;
+int timer = COUNTDOWN_AMOUNT * DISPLAY_UPDATE_RATE;
 
 char * result;
 
@@ -88,7 +89,6 @@ char * to_operator(int operator) {
         case OP_ADD: return " +";
         case OP_MUL: return " X";
         case OP_SUB: return " -";
-        case OP_DIV: return " /";
     }
     
     return "NO";
@@ -238,11 +238,13 @@ void change_to_count_down() {
     
     game_state = STOPWATCH;
     
+    timer = COUNTDOWN_AMOUNT * DISPLAY_UPDATE_RATE;
+
     tinygl_text_speed_set(100);
     tinygl_font_set (&font3x5_1);
     tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
     tinygl_text_mode_set (TINYGL_TEXT_MODE_STEP);
-    tinygl_text (time);
+    tinygl_text (to_text(timer/DISPLAY_UPDATE_RATE));
     
 }
 
@@ -256,26 +258,6 @@ int add_modulo(int number, int amount, int modulo) {
     
     return sum;
     
-}
-
- int timing() {
-    
-     bool run;
-     static uint16_t time;
-     char str[2];
-    
-     if (!run) {
-         time = 0;
-         return time;
-     }
-    
-     str[0] = ((time /10) % 10) + '0';
-     str[1] = (time % 10) + '0';
-     
-     tinygl_text (str);
-     
-     time--;
-     
 }
 
 bool decode_question(unsigned char question) {
@@ -319,7 +301,7 @@ unsigned char encode_question() {
 
     if (sender_operator == OP_ADD) {
         return (unsigned char) (sender_number_1 * 10 + sender_number_2);
-    } else if (sender_operator = OP_MUL) {
+    } else if (sender_operator == OP_MUL) {
         return (unsigned char) (100 + sender_number_1 * 10 + sender_number_2);
     } else {
         unsigned char count = 0;
@@ -336,7 +318,7 @@ unsigned char encode_question() {
             count ++;
         }
 
-        return count;
+        return count + 200;
     }
 
 } 
@@ -385,7 +367,9 @@ static void game_loop (__unused__ void *data) {
     if (game_state == START_SCREEN) {
         
         if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
+
             change_to_choose_num_1();
+
         } else if (ir_uart_read_ready_p()) {
             char recv = ir_uart_getc();
             if (recv == '>') {
@@ -396,12 +380,8 @@ static void game_loop (__unused__ void *data) {
  
                 change_to_wait_for_question();
             }
-        } else if (button_push_event_p(BUTTON1)) {
-            
-            change_to_count_down();
-            
-            }
-        
+
+        }
     
     } else if (game_state == CHOOSE_NUMBER_1) {
         
@@ -413,7 +393,7 @@ static void game_loop (__unused__ void *data) {
         
     } else if (game_state == CHOOSE_OPERATOR) {
         
-        number_select( &sender_operator, 4, &to_operator);
+        number_select( &sender_operator, 3, &to_operator);
         
         if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
             change_to_choose_num_2();
@@ -438,7 +418,9 @@ static void game_loop (__unused__ void *data) {
     } else if (game_state == WAIT_FOR_SEND) {
         
         if (button_push_event_p(BUTTON1)) {
-        led_set (LED1, 1);
+
+            led_set (LED1, 1);
+
             if (ir_uart_write_ready_p()) {
                 ir_uart_putc ('>');
             }
@@ -457,26 +439,33 @@ static void game_loop (__unused__ void *data) {
         
         }
     } else if (game_state == STOPWATCH) {
+
+        if (timer % DISPLAY_UPDATE_RATE == 0) {
+            tinygl_text (to_text(timer/DISPLAY_UPDATE_RATE));
+        }
+
+        timer -= 1;
         
         if (ir_uart_read_ready_p ()) {
             
             char answered = ir_uart_getc();
-            if (answered == '<') {
+            if (answered == '(') {
+
                 change_to_start_screen();
+            
+            }
+            
+        } else if (timer < 10) {
+
+            if (ir_uart_write_ready_p()) {
+
+                ir_uart_putc(')');
+                change_to_start_screen();
+
+            }
         
-            
-            } else if (time == 0) {
-            
-            change_to_start_screen();
-            
-        } else {
-            
-            time = timing();
-            
         }
         
-    
-    
     } else if (game_state == WAIT_FOR_QUESTION) {
         
         if (ir_uart_read_ready_p()) {
@@ -488,13 +477,23 @@ static void game_loop (__unused__ void *data) {
                 question[0] = to_text(sender_number_1)[0];
                 question[1] = to_text(sender_number_1)[1];
                 question[2] = to_operator(sender_operator)[1];
-                question[3] = to_text(sender_number_2)[0];
-                question[4] = to_text(sender_number_2)[1];
+                question[3] = to_text(sender_number_2)[1];
+                question[4] = to_text(sender_number_2)[0];
                 change_to_display_question();
             }
         }
 
     } else if (game_state == DISPLAY_QUESTION) {
+        
+        if (ir_uart_read_ready_p()) {
+
+            char recv = ir_uart_getc();
+            if (recv == ')') {
+                result = "  ...TIME UP!";
+                change_to_display_result();
+            }
+
+        }
 
         if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
             change_to_choose_answer();
@@ -502,19 +501,36 @@ static void game_loop (__unused__ void *data) {
         
     } else if (game_state == CHOOSE_ANSWER) {
         number_select( &receiver_answer, 100, &to_text);
+
+        if (ir_uart_read_ready_p()) {
+
+            char recv = ir_uart_getc();
+            if (recv == ')') {
+                result = "  ...TIME UP!";
+                change_to_display_result();
+            }
+
+        }
         
         if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
 
             int correct_answer = calculate_correct_answer(question);
 
             bool grading = (receiver_answer == correct_answer);
+
             if (grading == true) {
                 result = "  CORRECT :)";
             }
             else if (grading == false) {
                 result = "  INCORRECT!";
             }
-            change_to_display_result();
+
+            if (ir_uart_write_ready_p()) {
+
+                ir_uart_putc('(');
+
+                change_to_display_result();
+            }
         }
     } else if (game_state == DISPLAY_RESULT) {
 
