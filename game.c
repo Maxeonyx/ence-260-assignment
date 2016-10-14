@@ -3,6 +3,9 @@
  Written by Maxwell Clarke and Ryely Burtenshaw-Day
  */
 
+#include "display.h"
+#include "utils.h"
+
 #include "system.h"
 #include "tinygl.h"
 #include "task.h"
@@ -58,25 +61,22 @@ char * result;
 char question[6] = {0};
 
 
-void reset_answer() {
+void reset_answer(void) {
     receiver_answer = 0;
 }
 
-void reset_numbers() {
+void reset_numbers(void) {
     sender_number_1 = 0;
     sender_operator = 0;
     sender_number_2 = 0;
 }
 
-/* Function to convert int to char */
-char digit_base_10_to_char(int digit) {
-    char chr = '0';
-    chr += digit;
-    return chr;
-}
+
+
+
 
 /* Function used with tinygl_text to print numbers to the screen */
-char * to_text(int num) {
+char * to_text(int num, char * 2_char_array) {
     
     // we only want to deal with positive numbers in the range 0-99
     num = add_modulo(num, 0, 100);
@@ -98,184 +98,114 @@ char * to_text(int num) {
     return str;
 }
 
-/* Function to return operator to print when in operator selection */
-char * to_operator(int operator) {
-    
-    switch (operator) {
-        case OP_ADD: return " +";
-        case OP_MUL: return " X";
-        case OP_SUB: return " -";
-    }
-    
-    return "NO";
-}
+
 
 /* Sets the game state to START_SCREEN and the start screen to print instructions to the display when called */
-void change_to_start_screen() {
-    
-    game_state = START_SCREEN;
+void change_to_start_screen(void) {
 
     reset_numbers();
     reset_answer();
     
-    tinygl_text_speed_set (28);
-    tinygl_font_set (&font3x5_1);
-    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
-    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    game_state = START_SCREEN;
+    set_scroll_text();
     tinygl_text ("  NAVSWITCH OR WAIT");
     
 }
 
 /* Sets game state to CHOOSE_NUMBER_1, displays a number between 0-9 for the player to choose from in game */
-void change_to_choose_num_1() {
+void change_to_choose_num_1(void) {
     
     game_state = CHOOSE_NUMBER_1;
-    
-    tinygl_font_set (&font3x5_1);
-    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
-    tinygl_text_mode_set (TINYGL_TEXT_MODE_STEP);
+    set_static_text ();
     tinygl_text (to_text(sender_number_1));
-    tinygl_text_speed_set (100);
     
 }
 /* Sets game state to CHOOSE_NUMBER_2, does same thing as 'change_to_choose_num_1' but for the second number */
-void change_to_choose_num_2() {
+void change_to_choose_num_2(void) {
     
     game_state = CHOOSE_NUMBER_2;
-    
-    tinygl_font_set (&font3x5_1);
-    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
-    tinygl_text_mode_set (TINYGL_TEXT_MODE_STEP);
+    set_static_text ();
     tinygl_text (to_text(sender_number_2));
-    tinygl_text_speed_set (100);
     
 }
 
 /* Sets game state to CHOOSE_OPERATOR, allows the player to 'scroll' through operators by displaying operator options */
-void change_to_choose_operator() {
+void change_to_choose_operator(void) {
     
     game_state = CHOOSE_OPERATOR;
-    
-    tinygl_font_set (&font3x5_1);
-    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
-    tinygl_text_mode_set (TINYGL_TEXT_MODE_STEP);
+    set_static_text ();
     tinygl_text (to_operator(sender_operator));
-    tinygl_text_speed_set (100);
     
 }
 
 /* Changes game state to WAIT_FOR_SEND, displays instructions on how to send challenge to second player */
-void change_to_wait_for_send() {
+void change_to_wait_for_send(void) {
     
     game_state = WAIT_FOR_SEND;
-    
-    tinygl_text_speed_set (28);
-    tinygl_font_set (&font3x5_1);
-    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
-    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    set_scroll_text();
     tinygl_text ("  BUT1 TO SEND!");
     
 }
 
 /* Changes game state to WAIT_FOR_RECIEVER, displays ... while waiting */
-void change_to_wait_for_receiver() {
+void change_to_wait_for_receiver(void) {
     
     game_state = WAIT_FOR_RECEIVER;
-    
-    tinygl_text_speed_set (28);
-    tinygl_font_set (&font3x5_1);
-    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
-    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    set_scroll_text();
     tinygl_text ("  ...");
     
 }
 
 /* Changes game state to DISPLAY_QUESTION, displays challenge to second player */
-void change_to_display_question() {
+void change_to_display_question(void) {
     
     game_state = DISPLAY_QUESTION;
-    
-    tinygl_text_speed_set (28);
-    tinygl_font_set (&font3x5_1);
-    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
-    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    set_scroll_text();
     tinygl_text (question); //placeholder
 }
 
 /* Changes game state to CHOOSE_ANSWER, displays number range 0-99 for player to 'scroll' through and choose an answer */
-void change_to_choose_answer () {
+void change_to_choose_answer (void) {
     
     game_state = CHOOSE_ANSWER;
-    
-    tinygl_font_set (&font3x5_1);
-    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
-    tinygl_text_mode_set (TINYGL_TEXT_MODE_STEP);
+    set_static_text ();
     tinygl_text (to_text(receiver_answer));
-    tinygl_text_speed_set (100);
     
 }
 
 /* Changes game state to DISPLAY_RESULT, displays whether the second player got the correct answer or not */
-void change_to_display_result() {
+void change_to_display_result(void) {
     
     game_state = DISPLAY_RESULT;
-    
-    tinygl_text_speed_set (28);
-    tinygl_font_set (&font3x5_1);
-    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
-    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    set_scroll_text();
     tinygl_text (result);
 }
 
 /* Changes game state to WAIT_FOR_QUESTION, displays ... while waiting to recieve challenge from player 1 */
-void change_to_wait_for_question() {
+void change_to_wait_for_question(void) {
 
     game_state = WAIT_FOR_QUESTION;
-    
-    tinygl_text_speed_set (28);
-    tinygl_font_set (&font3x5_1);
-    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
-    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    set_scroll_text();
     tinygl_text ("  ...");
 
 }
 
 /* The credits!! */
-void change_to_credits() {
+void change_to_credits(void) {
 
     game_state = EASTER_EGG;
-    
-    tinygl_text_speed_set (28);
-    tinygl_font_set (&font3x5_1);
-    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
-    tinygl_text_mode_set (TINYGL_TEXT_MODE_SCROLL);
+    set_scroll_text();
     tinygl_text ("THANKS FOR PLAYING!!!");//" WE HOPE YOU HAD FUN! -- RYELY B-D, MAXWELL C");
 
 }
 
-void change_to_count_down() {
-    
-    game_state = STOPWATCH;
+void change_to_count_down(void) {
     
     timer = COUNTDOWN_AMOUNT * DISPLAY_UPDATE_RATE;
-
-    tinygl_text_speed_set(100);
-    tinygl_font_set (&font3x5_1);
-    tinygl_text_dir_set (TINYGL_TEXT_DIR_ROTATE);
-    tinygl_text_mode_set (TINYGL_TEXT_MODE_STEP);
+    
+    game_state = STOPWATCH;
+    set_static_text ();
     tinygl_text (to_text(timer/DISPLAY_UPDATE_RATE));
-    
-}
-
-int add_modulo(int number, int amount, int modulo) {
-    
-    int sum = (number + amount) % modulo;
-    
-    if (sum < 0) {
-        sum += modulo;
-    }
-    
-    return sum;
     
 }
 
@@ -316,7 +246,7 @@ bool decode_question(unsigned char question) {
     return false;
 }
 
-unsigned char encode_question() {
+unsigned char encode_question(void) {
 
     if (sender_operator == OP_ADD) {
         return (unsigned char) (sender_number_1 * 10 + sender_number_2);
@@ -570,6 +500,8 @@ int main (void)
     navswitch_init();
     ir_uart_init ();
     button_init();
+    
+    tinygl_font_set (&font3x5_1);
     
     change_to_start_screen();
     
