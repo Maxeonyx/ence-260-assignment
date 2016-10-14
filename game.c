@@ -250,6 +250,7 @@ unsigned char encode_question(void) {
 
 /*
     Decodes the question information out of the received character.
+    see comment on encode_question for the mapping
 */
 bool decode_question(unsigned char question) {
 
