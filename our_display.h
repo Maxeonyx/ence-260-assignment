@@ -1,6 +1,6 @@
 /**
 
-    display.h
+    our_display.h
     Ryely Burtenshaw-Day, Maxwell Clarke
 
 */

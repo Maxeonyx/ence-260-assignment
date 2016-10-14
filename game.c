@@ -3,7 +3,7 @@
  Written by Maxwell Clarke and Ryely Burtenshaw-Day
  */
 
-#include "display.h"
+#include "our_display.h"
 #include "utils.h"
 
 #include "system.h"

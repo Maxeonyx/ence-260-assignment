@@ -1,11 +1,11 @@
 /**
 
-    display.c
+    our_display.c
     Ryely Burtenshaw-Day, Maxwell Clarke
 
 */
 
-#include "display.h"
+#include "our_display.h"
 
 #include "tinygl.h"
 

@@ -60,11 +60,11 @@ prescale.o: ../../drivers/avr/prescale.c ../../drivers/avr/prescale.h ../../driv
 utils.o: utils.c utils.h
 	$(CC) -c $(CFLAGS) $< -o $@
 
-display.o: display.c display.h ../../utils/tinygl.h
+our_display.o: our_display.c our_display.h ../../utils/tinygl.h
 	$(CC) -c $(CFLAGS) $< -o $@
 
 # Compile: create object files from C source files.
-game.o: game.c ../../drivers/avr/system.h ../../utils/task.h ../../utils/tinygl.h
+game.o: game.c ../../drivers/avr/system.h ../../utils/task.h ../../utils/tinygl.h utils.h our_display.h
 	$(CC) -c $(CFLAGS) $< -o $@
 
 system.o: ../../drivers/avr/system.c ../../drivers/avr/system.h
@@ -72,7 +72,7 @@ system.o: ../../drivers/avr/system.c ../../drivers/avr/system.h
 
 
 # Link: create ELF output file from object files.
-game.out: game.o utils.o display.o system.o tinygl.o task.o font.o ledmat.o display.o button.o timer.o pio.o navswitch.o led.o ir_uart.o usart1.o timer0.o prescale.o
+game.out: game.o utils.o our_display.o system.o tinygl.o task.o font.o ledmat.o display.o button.o timer.o pio.o navswitch.o led.o ir_uart.o usart1.o timer0.o prescale.o
 	$(CC) $(CFLAGS) $^ -o $@ -lm
 	$(SIZE) $@
 
