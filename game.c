@@ -1,6 +1,14 @@
 /**
  MATHS FIGHT!!
  Written by Maxwell Clarke and Ryely Burtenshaw-Day
+
+ See the README for a description!
+
+ Hi, this file is very large but that is because much of the behaviour of this code relies on global state.
+ (e.g. the game_state variable, or the selected numbers and operator for the maths question)
+ I think dividing this file up any more would obstruct the reader from understanding somewhat.
+
+
  */
 
 #include "our_display.h"
