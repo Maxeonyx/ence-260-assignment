@@ -462,6 +462,10 @@ void run_display_result(void) {
     }
 }
 
+void run_easter_egg(void) {
+    // Do nothing. Trapped!
+}
+
 
 static void game_loop (__unused__ void *data) {
     
@@ -510,6 +514,10 @@ static void game_loop (__unused__ void *data) {
             
         case DISPLAY_RESULT:
             run_display_result();
+            break;
+
+        case EASTER_EGG:
+            run_easter_egg();
             break;
 
     } 
