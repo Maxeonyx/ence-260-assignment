@@ -321,6 +321,13 @@ void number_select(int * int_var, int max_int, char* (*textFunction)(int)) {
     
 }
 
+
+/*
+    All the run_<whatever> functions are the components of the game loop.
+    Each corresponds to a particular game state.
+*/
+
+
 void run_start_screen(void) {
     if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
 
