@@ -72,11 +72,8 @@ void reset_numbers(void) {
 }
 
 
-
-
-
 /* Function used with tinygl_text to print numbers to the screen */
-char * to_text(int num, char * 2_char_array) {
+char * to_text(int num) {
     
     // we only want to deal with positive numbers in the range 0-99
     num = add_modulo(num, 0, 100);
@@ -97,8 +94,6 @@ char * to_text(int num, char * 2_char_array) {
     
     return str;
 }
-
-
 
 /* Sets the game state to START_SCREEN and the start screen to print instructions to the display when called */
 void change_to_start_screen(void) {
