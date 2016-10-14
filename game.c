@@ -510,6 +510,14 @@ void run_easter_egg(void) {
 }
 
 
+/***********************
+========================
+
+    GAME LOOP
+    This is where the magic happens
+
+========================
+***********************/
 static void game_loop (__unused__ void *data) {
     
     tinygl_update ();
