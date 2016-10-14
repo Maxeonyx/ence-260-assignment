@@ -29,7 +29,6 @@ typedef enum game_state_enum {
     CHOOSE_OPERATOR,
     CHOOSE_NUMBER_2,
     WAIT_FOR_SEND,
-    WAIT_FOR_RECEIVER,
     STOPWATCH,
     
     //receiver
@@ -134,15 +133,6 @@ void change_to_wait_for_send(void) {
     game_state = WAIT_FOR_SEND;
     set_scroll_text();
     tinygl_text ("  BUT1 TO SEND!");
-    
-}
-
-/* Changes game state to WAIT_FOR_RECIEVER, displays ... while waiting */
-void change_to_wait_for_receiver(void) {
-    
-    game_state = WAIT_FOR_RECEIVER;
-    set_scroll_text();
-    tinygl_text ("  ...");
     
 }
 
@@ -295,6 +285,183 @@ void number_select(int * int_var, int max_int, char* (*textFunction)(int)) {
     
 }
 
+void run_start_screen(void) {
+    if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
+
+        change_to_choose_num_1();
+
+    } else if (ir_uart_read_ready_p()) {
+
+        char recv = ir_uart_getc();
+        if (recv == '>') {
+
+            if (ir_uart_write_ready_p ()) {
+                ir_uart_putc('<');
+
+                change_to_wait_for_question();
+            }
+        }
+
+    }
+}
+
+void run_choose_number_1(void) {
+    number_select( &sender_number_1, 10, &to_text);
+    
+    if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
+        change_to_choose_operator();
+    }
+}
+
+void run_choose_operator(void) {
+    number_select( &sender_operator, 3, &to_operator);
+    
+    if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
+        change_to_choose_num_2();
+    }
+}
+
+void run_choose_number_2(void) {
+    int range;
+    if (sender_operator == OP_SUB) {
+        range = sender_number_1 + 1;
+    } else {
+        range = 10;
+    }
+
+    number_select( &sender_number_2, range, &to_text);
+    
+    if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
+        change_to_wait_for_send();
+    }
+}
+
+void run_wait_for_send(void) {
+    if (button_push_event_p(BUTTON1)) {
+
+        led_set (LED1, 1);
+
+        if (ir_uart_write_ready_p()) {
+            ir_uart_putc ('>');
+        }
+            
+        
+    } else if (ir_uart_read_ready_p ()) {
+        
+        char recv = ir_uart_getc();
+        if (recv == '<') {
+        
+            ir_uart_putc(encode_question());
+            
+            change_to_count_down();
+            
+        }
+    
+    }
+}
+
+void run_stopwatch(void) {
+    if (timer % DISPLAY_UPDATE_RATE == 0) {
+        tinygl_text (to_text(timer/DISPLAY_UPDATE_RATE));
+    }
+
+    timer -= 1;
+    
+    if (ir_uart_read_ready_p ()) {
+        
+        char answered = ir_uart_getc();
+        if (answered == '(') {
+
+            change_to_start_screen();
+        
+        }
+        
+    } else if (timer < 10) {
+
+        if (ir_uart_write_ready_p()) {
+
+            ir_uart_putc(')');
+            change_to_start_screen();
+
+        }
+    
+    }
+}
+
+void run_wait_for_question(void) {
+    if (ir_uart_read_ready_p()) {
+        unsigned char recv = ir_uart_getc();
+        bool easter_egg = decode_question(recv);
+        if(easter_egg) {
+            change_to_credits();
+        } else {
+            question[0] = to_text(sender_number_1)[0];
+            question[1] = to_text(sender_number_1)[1];
+            question[2] = to_operator(sender_operator)[1];
+            question[3] = to_text(sender_number_2)[1];
+            question[4] = to_text(sender_number_2)[0];
+            change_to_display_question();
+        }
+    }
+}
+
+void run_display_question(void) {
+    if (ir_uart_read_ready_p()) {
+
+        char recv = ir_uart_getc();
+        if (recv == ')') {
+            result = "  ...TIME UP!";
+            change_to_display_result();
+        }
+
+    }
+
+    if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
+        change_to_choose_answer();
+    }
+}
+
+void run_choose_answer(void) {
+    number_select( &receiver_answer, 100, &to_text);
+
+    if (ir_uart_read_ready_p()) {
+
+        char recv = ir_uart_getc();
+        if (recv == ')') {
+            result = "  ...TIME UP!";
+            change_to_display_result();
+        }
+
+    }
+    
+    if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
+
+        int correct_answer = calculate_correct_answer(question);
+
+        bool grading = (receiver_answer == correct_answer);
+
+        if (grading == true) {
+            result = "  CORRECT :)";
+        }
+        else if (grading == false) {
+            result = "  INCORRECT!";
+        }
+
+        if (ir_uart_write_ready_p()) {
+
+            ir_uart_putc('(');
+
+            change_to_display_result();
+        }
+    }
+}
+
+void run_display_result(void) {
+    if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
+        change_to_start_screen();
+    }
+}
+
 
 static void game_loop (__unused__ void *data) {
     
@@ -303,180 +470,47 @@ static void game_loop (__unused__ void *data) {
     button_update();
     navswitch_update();
     
-    if (game_state == START_SCREEN) {
-        
-        if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
+    switch(game_state) {
 
-            change_to_choose_num_1();
-
-        } else if (ir_uart_read_ready_p()) {
-
-            char recv = ir_uart_getc();
-            if (recv == '>') {
-
-                if (ir_uart_write_ready_p ()) {
-                    ir_uart_putc('<');
- 
-                    change_to_wait_for_question();
-                }
-            }
-
-        }
-    
-    } else if (game_state == CHOOSE_NUMBER_1) {
+        case START_SCREEN:
+            run_start_screen();
+            break;
         
-        number_select( &sender_number_1, 10, &to_text);
-        
-        if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
-            change_to_choose_operator();
-        }
-        
-    } else if (game_state == CHOOSE_OPERATOR) {
-        
-        number_select( &sender_operator, 3, &to_operator);
-        
-        if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
-            change_to_choose_num_2();
-        }
-        
-        
-    } else if (game_state == CHOOSE_NUMBER_2) {
-        
-        int range;
-        if (sender_operator == OP_SUB) {
-            range = sender_number_1 + 1;
-        } else {
-            range = 10;
-        }
-
-        number_select( &sender_number_2, range, &to_text);
-        
-        if (navswitch_push_event_p (NAVSWITCH_PUSH)) {
-            change_to_wait_for_send();
-        }
-        
-    } else if (game_state == WAIT_FOR_SEND) {
-        
-        if (button_push_event_p(BUTTON1)) {
-
-            led_set (LED1, 1);
-
-            if (ir_uart_write_ready_p()) {
-                ir_uart_putc ('>');
-            }
-                
+        case CHOOSE_NUMBER_1:
+            run_choose_number_1();
+            break;
             
-        } else if (ir_uart_read_ready_p ()) {
+        case CHOOSE_OPERATOR:
+            run_choose_operator();
+            break;
             
-            char recv = ir_uart_getc();
-            if (recv == '<') {
+        case CHOOSE_NUMBER_2:
+            run_choose_number_2();
+            break;
             
-                ir_uart_putc(encode_question());
-                
-                change_to_count_down();
-                
-            }
-        
-        }
-    } else if (game_state == STOPWATCH) {
-
-        if (timer % DISPLAY_UPDATE_RATE == 0) {
-            tinygl_text (to_text(timer/DISPLAY_UPDATE_RATE));
-        }
-
-        timer -= 1;
-        
-        if (ir_uart_read_ready_p ()) {
+        case WAIT_FOR_SEND:
+            run_wait_for_send();
+            break;
             
-            char answered = ir_uart_getc();
-            if (answered == '(') {
-
-                change_to_start_screen();
+        case STOPWATCH:
+            run_stopwatch();
+            break;
             
-            }
+        case WAIT_FOR_QUESTION:
+            run_wait_for_question();
+            break;
+
+        case DISPLAY_QUESTION:
+            run_display_question();
+            break;
             
-        } else if (timer < 10) {
-
-            if (ir_uart_write_ready_p()) {
-
-                ir_uart_putc(')');
-                change_to_start_screen();
-
-            }
-        
-        }
-        
-    } else if (game_state == WAIT_FOR_QUESTION) {
-        
-        if (ir_uart_read_ready_p()) {
-            unsigned char recv = ir_uart_getc();
-            bool easter_egg = decode_question(recv);
-            if(easter_egg) {
-                change_to_credits();
-            } else {
-                question[0] = to_text(sender_number_1)[0];
-                question[1] = to_text(sender_number_1)[1];
-                question[2] = to_operator(sender_operator)[1];
-                question[3] = to_text(sender_number_2)[1];
-                question[4] = to_text(sender_number_2)[0];
-                change_to_display_question();
-            }
-        }
-
-    } else if (game_state == DISPLAY_QUESTION) {
-        
-        if (ir_uart_read_ready_p()) {
-
-            char recv = ir_uart_getc();
-            if (recv == ')') {
-                result = "  ...TIME UP!";
-                change_to_display_result();
-            }
-
-        }
-
-        if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
-            change_to_choose_answer();
-        }
-        
-    } else if (game_state == CHOOSE_ANSWER) {
-        number_select( &receiver_answer, 100, &to_text);
-
-        if (ir_uart_read_ready_p()) {
-
-            char recv = ir_uart_getc();
-            if (recv == ')') {
-                result = "  ...TIME UP!";
-                change_to_display_result();
-            }
-
-        }
-        
-        if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
-
-            int correct_answer = calculate_correct_answer(question);
-
-            bool grading = (receiver_answer == correct_answer);
-
-            if (grading == true) {
-                result = "  CORRECT :)";
-            }
-            else if (grading == false) {
-                result = "  INCORRECT!";
-            }
-
-            if (ir_uart_write_ready_p()) {
-
-                ir_uart_putc('(');
-
-                change_to_display_result();
-            }
-        }
-    } else if (game_state == DISPLAY_RESULT) {
-
-        if (navswitch_push_event_p(NAVSWITCH_PUSH)) {
-            change_to_start_screen();
-        }
+        case CHOOSE_ANSWER:
+            run_choose_answer();
+            break;
+            
+        case DISPLAY_RESULT:
+            run_display_result();
+            break;
 
     } 
     
