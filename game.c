@@ -41,11 +41,6 @@ typedef enum game_state_enum {
     EASTER_EGG
 } GameState;
 
-enum operator_enum {
-    OP_ADD,
-    OP_MUL,
-    OP_SUB
-};
 /* Set initial game state to start screen */
 GameState game_state = START_SCREEN;
 

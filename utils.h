@@ -10,6 +10,12 @@
 #define TEAM32_UTIL_H
 
 
+enum operator_enum {
+    OP_ADD,
+    OP_MUL,
+    OP_SUB
+};
+
 /* Function to convert int to char */
 char digit_base_10_to_char(int digit);
 
