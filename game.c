@@ -89,6 +89,11 @@ char * to_text(int num) {
     return str;
 }
 
+
+/*
+    All the change_to_<whatever> functions are functions to change between game states. They perform some setup before the given state.
+*/
+
 /* Sets the game state to START_SCREEN and the start screen to print instructions to the display when called */
 void change_to_start_screen(void) {
 
@@ -189,6 +194,63 @@ void change_to_count_down(void) {
     
 }
 
+
+/*
+    Encodes all the information about a question into one character.
+    The mapping is as follows:
+
+        0-99   : Addition
+         - e.g.  12 is 1 + 2
+
+        100-199: Multiplication
+         - e.g. 112 is 1 * 2
+
+        200-254: Subtraction
+         - This follows a different mapping. Examples:
+
+            200: 0 - 0
+
+            201: 1 - 0
+            202: 1 - 1
+
+            203: 2 - 0
+            204: 2 - 1
+            205: 2 - 2
+            ...
+
+            There are only 55 possible subtraction questions because we do not
+            allow questions with negative answers.
+
+*/
+unsigned char encode_question(void) {
+
+    if (sender_operator == OP_ADD) {
+        return (unsigned char) (sender_number_1 * 10 + sender_number_2);
+    } else if (sender_operator == OP_MUL) {
+        return (unsigned char) (100 + sender_number_1 * 10 + sender_number_2);
+    } else {
+        unsigned char count = 0;
+        int i = 0;
+        int j = 0;
+        while (!(i == sender_number_1 && j == sender_number_2)) {
+
+            j ++;
+            if (j > i) {
+                j = 0;
+                i++;
+            }
+
+            count ++;
+        }
+
+        return count + 200;
+    }
+
+}
+
+/*
+    Decodes the question information out of the received character.
+*/
 bool decode_question(unsigned char question) {
 
     if (question < 100) {
@@ -225,32 +287,6 @@ bool decode_question(unsigned char question) {
 
     return false;
 }
-
-unsigned char encode_question(void) {
-
-    if (sender_operator == OP_ADD) {
-        return (unsigned char) (sender_number_1 * 10 + sender_number_2);
-    } else if (sender_operator == OP_MUL) {
-        return (unsigned char) (100 + sender_number_1 * 10 + sender_number_2);
-    } else {
-        unsigned char count = 0;
-        int i = 0;
-        int j = 0;
-        while (!(i == sender_number_1 && j == sender_number_2)) {
-
-            j ++;
-            if (j > i) {
-                j = 0;
-                i++;
-            }
-
-            count ++;
-        }
-
-        return count + 200;
-    }
-
-} 
 
 int calculate_correct_answer (char * _question) {
 
