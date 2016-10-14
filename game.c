@@ -300,6 +300,12 @@ int calculate_correct_answer (char * _question) {
     
 }
 
+
+/*
+    Helper function to centralise the logic for the 4 "chooser" states.
+    It listens for navswitch events to change the displayed character.
+
+*/
 void number_select(int * int_var, int max_int, char* (*textFunction)(int)) {
     
     if (navswitch_push_event_p (NAVSWITCH_WEST)) {
